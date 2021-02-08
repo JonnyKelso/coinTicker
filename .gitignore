@@ -1,3 +1,14 @@
+# VSCode bits
+.vscode/
+# keys
+config.py
+
+# log files
+*_log_*.csv
+
+# ----------------------------------------------------------
+# Standard Github Python ignores
+#
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,3 +138,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
