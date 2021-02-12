@@ -3,8 +3,10 @@
 import csv
 import config
 import time
-from datetime import date
-from enum import Enum
+from datetime import date       
+from enum import Enum           
+import os
+import sys
 
 #Binance
 from binance.client import Client
@@ -37,52 +39,112 @@ class BinanceHelper:
     currentBalance = -1.0
 
     def __init__(self, api_key, api_secret):
-        self.client = Client(api_key, api_secret)
+        try:
+            self.client = Client(api_key, api_secret)
+        except Exception as e: #exceptions.BinanceAPIException as err:
+            print(f"Binance exception during init: \n {e}") 
+            self.client = None
     
     def getPrices(self):
-        return self.client.get_all_tickers()
+        try:
+            prices = self.client.get_all_tickers()
+        except Exception as e: # exceptions.BinanceAPIException as err:
+            print(f"Binance exception during getPrices: \n {e}") 
+            prices = None
+        return prices
 
     def getPrice(self, symb):
         try:
             price = self.client.get_ticker(symbol=symb)
-        except exceptions.BinanceAPIException as err:
-            print(f"Exception: {err}")
+        except Exception as e: # exceptions.BinanceAPIException as err:
+            print(f"Binance exception during getPrice: \n {e}") 
             price = None
         return price
 
-    def getAccountBalances(self, symb):
-        response = self.client.get_account()  
-        for balance in response['balances']:
-            if balance['asset'] == symb :
-                if float(balance['free']) > 0.0:
-                    self.currentBalance = float(balance['free'])
+    def getAccountBalanceForSymbol(self, symb):
+        try:
+            response = self.client.get_account()  
+        except Exception as e: # exceptions.BinanceAPIException as err:
+            print(f"Binance exception during getAccountBalanceForSymbol: \n {e}") 
+            self.currentBalance = None
+        else:
+            for balance in response['balances']:
+                if balance['asset'] == symb :
+                    if float(balance['free']) > 0.0:
+                        self.currentBalance = float(balance['free'])
         return self.currentBalance
 
-class Account:
-    def __init__(self, symbol=None, pair=None, balance=0.0, minBalance=999999.0, maxBalance=0.0):
+    def getAccountBalances(self):
+        try:
+            response = self.client.get_account()  
+        except Exception as e: # exceptions.BinanceAPIException as err:
+            print(f"Binance exception during getAccountBalances: \n {e}") 
+            self.balances = None
+        else:
+            self.balances = response
+            
+            #for balance in response['balances']:
+            #    if balance['asset'] == symb :
+            #        if float(balance['free']) > 0.0:
+            #            self.currentBalance = float(balance['free'])
+        return self.balances
+
+class Instrument:
+    def __init__(self, symbol, pair):
         self.symbol         = symbol
         self.pair           = pair
-        self.balance        = balance
-        self.minBalance     = minBalance
-        self.maxBalance     = maxBalance
+        self.balanceUSDT    =   {
+                                    'balance':0.0,
+                                    'min':0.0,
+                                    'max':0.0
+                                }
+        self.balanceGBP     =   {
+                                    'balance':0.0,
+                                    'min':0.0,
+                                    'max':0.0
+                                }
+        self.coinPriceUSDT             = 0.0
+        self.coinPriceGBP              = 0.0
+        self.notifyBalanceThreshold     = 0.0
+        self.balanceThresholdBase       = 0.0
+        self.notifyPriceThreshold       = 0.0
+        self.priceBaseline              = 0.0
+        self.distanceToPriceThreshold   = 0.0
 
-def calcDisplayMarkerPosition(coinPrice):
-    global priceBaseline
-    adjusted_Coin_price = int(coinPrice * 1000.0) # in tenths of a cent
-    if priceBaseline == 0:
-        priceBaseline = adjusted_Coin_price / 10
-        priceBaseline = priceBaseline * 10
+    def __str__(self):
+        return (f"{self.symbol},                    \
+                    {self.pair},                    \
+                    {self.balanceUSDT},             \
+                    {self.balanceGBP},              \
+                    {self.coinPriceUSDT},           \
+                    {self.coinPriceGBP},            \
+                    {self.notifyBalanceThreshold},  \
+                    {self.balanceThresholdBase},    \
+                    {self.notifyPriceThreshold},    \
+                    {self.distanceToPriceThreshold}")
+
+class Account:
+    def __init__(self):
+        self.instruments = []
+
+def calcDisplayMarkerPosition(instrument):
+#    global priceBaseline
+    adjusted_Coin_price = int(instrument.coinPriceUSDT * 1000.0) # in tenths of a cent
+    if instrument.priceBaseline == 0:
+        instrument.priceBaseline = adjusted_Coin_price / 10
+        instrument.priceBaseline = instrument.priceBaseline * 10
     #print(f"{displayLineLength}, {adjusted_Coin_price}, {priceBaseline}")
     return (displayLineLength / 2) + (adjusted_Coin_price - priceBaseline)
 
-def printBalanceLine(logfile_writer, symbol, currentCoinPriceGBP, oneCoinInUSDT, accountBalance):
+def printBalanceLine(logfile_writer, instrument):
     # convert a current coin price from something like 0.00000181 to 81, 
     # so we can use that value to draw a little scale glyph from 0-100.
-    marker_pos = calcDisplayMarkerPosition(oneCoinInUSDT)
-    adjusted_coin_price = int(oneCoinInUSDT * 10000)
+    marker_pos = calcDisplayMarkerPosition(instrument)
+    adjusted_coin_price = int(instrument.coinPriceUSDT * 10000)
     adjusted_coin_price = adjusted_coin_price / 10 
-    msg = f"{getTime()}: {symbol} : {oneCoinInUSDT:.4f} : {round(accountBalance.minBalance)} : {round(accountBalance.maxBalance)} : {round(accountBalance.balance)} : {str('|').rjust(int(marker_pos),' ')}"#round up == false
-    print(msg)
+    print(f"markerpos: {marker_pos}, adjusted_coin_price: {adjusted_coin_price}")
+    msg = f"{getTime()}: {instrument.symbol} : {instrument.coinPriceUSDT:.4f} : {round(instrument.balanceGBP['min'])} : {round(instrument.balanceGBP['max'])} : {round(instrument.balanceGBP['balance'])} : {str('|').rjust(int(marker_pos),' ')}"#round up == false
+    #print(msg)
     logfile_writer.writerow([msg])
 
 def printLogMessage(message, writer):
@@ -112,57 +174,125 @@ def getCoinPrice(symbolPair, baseCurrency):
         btc_gbp_bidPrice = float(btc_gbp_price['bidPrice'])     # extract the bidPrice from the object
         return (coin_bid_price * btc_gbp_bidPrice)
 
+def getNotifyPriceThreshold(currentPrice):
+    #global notifyPriceThreshold
+    adj_price = int(currentPrice * 100)
+    return float(adj_price) / 100.0
 
+def printBalances(accountBalances):
+    print(f"{str('coin').rjust(4,' ')}:{str('total').rjust(10,' ')}:{str('total $').rjust(10,' ')}:{str('total £').rjust(10,' ')}")
+    for balance in accountBalances['balances']:
+        if float(balance['free']) > 0.0:
+            asset = balance['asset']
+            totalbalance = float(balance['free'])
+            pairUSDT = f"{asset}USDT"
+            pairGBP = f"{asset}GBP"
+            totalBalanceUSDT = totalbalance * getCoinPrice(pairUSDT, 'USDT')
+            totalBalanceGBP = totalbalance * getCoinPrice(pairGBP, 'GBP')
+            print(f"{asset.rjust(4,' ')}:{rightJustifyString(totalbalance, 10)}:{rightJustifyString(totalBalanceUSDT,10)}:{rightJustifyString(totalBalanceGBP,10)}")
+            
+
+def rightJustifyString(value, totalLength):
+    return str(f"{value:.2f}").rjust(totalLength,' ')
 if __name__ == '__main__':
     priceBaseline           = 0
     displayLineLength       = 100           # for display only - the number of character spaces used to display price marker
     sleepDelayMin           = 1             # time between querying the binance API
     notifyBalanceThreshold  = 20.0          # how far the profit value should move in GBP before notifying
     balanceThresholdBase    = 0.0           # baseline profit value used to measure profit movement for notification purposes
-
+    
+    #API_KEY = os.getenv('BINANCE_API_KEY')
+    #API_SECRET = os.environ.get('BINANCE_API_SECRET')
+    #DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL')
+    #print(API_KEY)
+    #print(API_SECRET)
+    #print(DISCORD_WEBHOOK_URL)
+    #binHelper = BinanceHelper(str(API_KEY), str(API_SECRET))
+    #disHelper = DiscordHelper(str(DISCORD_WEBHOOK_URL))
     binHelper = BinanceHelper(config.API_KEY, config.API_SECRET)
-    disHelper = DiscordHelper(config.DISCORD_WEBHOOK)
-    account = Account()
-    account.symbol = 'DOGE'
-    account.pair ='DOGEBTC'
+    if binHelper is None:
+        sys.exit("Could not initialise Binance API, exiting.")
+    disHelper = DiscordHelper(config.DISCORD_WEBHOOK_URL)
 
-    with open(f"{account.pair}_log_{getDateStr()}.csv", 'w', newline ='') as csv_file :
+
+    account = Account()
+    account.instruments.append(Instrument("DOGE", "DOGEUSDT"))
+    account.instruments.append(Instrument("BTC", "BTCUSDT"))
+
+    balances = binHelper.getAccountBalances()
+    #print(balances['balances'])
+    printBalances(balances)
+
+    with open(f"cryptobot_log_{getDateStr()}.csv", 'w', newline ='') as csv_file :
         data_writer = csv.writer(csv_file, delimiter=',') 
         disHelper.sendDiscordMsg(f"New run starting at {getDateStr()}")   
 
         while(True):
-            # get number of coins
-            coin_balance = binHelper.getAccountBalances(account.symbol)
-
-            # get the coin value in BTC (used as stepping stone to cal value in GBP)
-            current_coin_price_GBP = getCoinPrice(account.pair, 'GBP')
-            current_coin_price_USDT = getCoinPrice(account.pair, 'USDT')
-            current_btc_price_USDT = getCoinPrice('BTCUSDT', 'USDT')
-
-            # get current coin account value in GBP
-            account.balance = current_coin_price_GBP * coin_balance
-
-            if account.balance > account.maxBalance:
-                account.maxBalance = account.balance
-            if account.balance < account.minBalance:
-                account.minBalance = account.balance
             
-            if balanceThresholdBase == 0.0 :
-                balanceThresholdBase = account.balance - (account.balance % 10)
-                msg = f"init balance threshold to {balanceThresholdBase}"
-                printLogMessage(msg, data_writer)
-                disHelper.sendDiscordMsg(msg)
-            if account.balance > (balanceThresholdBase + notifyBalanceThreshold) :
-                balanceThresholdBase = (balanceThresholdBase + notifyBalanceThreshold)
-                disHelper.sendDiscordMsg(f"@here UP {notifyBalanceThreshold} to {round(account.balance,2)}, new threshold at {balanceThresholdBase}")
-            if account.balance < (balanceThresholdBase - notifyBalanceThreshold) :
-                balanceThresholdBase = (balanceThresholdBase - notifyBalanceThreshold)
-                disHelper.sendDiscordMsg(f"@here DOWN {notifyBalanceThreshold} to {round(account.balance,2)}, new threshold at {balanceThresholdBase}")
-            
-            # print current values to log
-            printBalanceLine(data_writer, account.pair, current_coin_price_GBP, current_coin_price_USDT, account)
+            for instr in account.instruments:
+                discordMsg = ""
+                # get number of coins
+                coin_balance = binHelper.getAccountBalanceForSymbol(instr.symbol)
+                if coin_balance is None:
+                    print("couldn't get balance")
+                    continue
+                # get the coin value in BTC (used as stepping stone to cal value in GBP)
+                current_coin_price_GBP = getCoinPrice(instr.pair, 'GBP')
+                if current_coin_price_GBP is None:
+                    print("couldn't get price")
+                    continue
+                current_coin_price_USDT = getCoinPrice(instr.pair, 'USDT')
+                if current_coin_price_USDT is None:
+                    print("couldn't get price")
+                    continue
+                current_btc_price_USDT = getCoinPrice('BTCUSDT', 'USDT')
+                if current_btc_price_USDT is None:
+                    print("couldn't get price")
+                    continue
+
+                # get current coin account value in GBP
+                instr.coinPriceUSDT = current_coin_price_USDT
+                instr.coinPriceGBP = current_coin_price_GBP
+                instr.balanceGBP['balance'] = current_coin_price_GBP * coin_balance
+                instr.balanceUSDT['balance'] = current_coin_price_USDT * coin_balance
+                #print(f"coin_balance:{coin_balance},\ncurrent_coin_price_GBP:{current_coin_price_GBP},\ncurrent_coin_price_USDT:{current_coin_price_USDT},\ncurrent_btc_price_USDT:{current_btc_price_USDT},\naccount.balance:{account.balance}")
+                if instr.balanceGBP['balance'] > instr.balanceGBP['max']:
+                    instr.balanceGBP['max'] = instr.balanceGBP['balance']
+                if instr.balanceGBP['balance'] < instr.balanceGBP['min']:
+                    instr.balanceGBP['min'] = instr.balanceGBP['balance']
+                
+                if instr.balanceThresholdBase == 0.0  and instr.balanceGBP['balance'] > 1.0:
+                    instr.balanceThresholdBase = instr.balanceGBP['balance'] - (instr.balanceGBP['balance'] % 10)
+                    msg = f"init balance threshold for {instr.symbol} to {instr.balanceThresholdBase}"
+                    printLogMessage(msg, data_writer)
+                    discordMsg += msg
+                    #disHelper.sendDiscordMsg(msg)
+                if instr.balanceGBP['balance'] > 1.0:
+                    if instr.balanceGBP['balance'] > (instr.balanceThresholdBase + instr.notifyBalanceThreshold) :
+                        instr.balanceThresholdBase = (instr.balanceThresholdBase + instr.notifyBalanceThreshold)
+                        discordMsg += (f"@here UP {instr.notifyBalanceThreshold} to {round(instr.balanceGBP['balance'],2)}, new threshold at {instr.balanceThresholdBase}")
+                        #disHelper.sendDiscordMsg(f"@here UP {notifyBalanceThreshold} to {round(account.balance,2)}, new threshold at {balanceThresholdBase}")
+                    if instr.balanceGBP['balance'] < (instr.balanceThresholdBase - instr.notifyBalanceThreshold) :
+                        instr.balanceThresholdBase = (instr.balanceThresholdBase - instr.notifyBalanceThreshold)
+                        discordMsg += (f"@here DOWN {instr.notifyBalanceThreshold} to {round(instr.balanceGBP['balance'],2)}, new threshold at {instr.balanceThresholdBase}")
+                        #disHelper.sendDiscordMsg(f"@here DOWN {notifyBalanceThreshold} to {round(account.balance,2)}, new threshold at {balanceThresholdBase}")
+                
+                if instr.notifyPriceThreshold == 0.0:
+                    instr.notifyPriceThreshold = getNotifyPriceThreshold(current_coin_price_USDT)
+                distanceToPriceThreshold = abs(current_coin_price_USDT - instr.notifyPriceThreshold)
+                print(f"distanceToPriceThreshold:{distanceToPriceThreshold:.4f}")
+                if distanceToPriceThreshold > 1.0:
+                    discordMsg += (f"{instr.symb} reached {notifyPriceThreshold}, now at {current_coin_price_USDT}")
+                    #disHelper.sendDiscordMsg(f"{account.symbol} reached {notifyPriceThreshold}, now at {current_coin_price_USDT}")
+                    notifyPriceThreshold = getNotifyPriceThreshold(current_coin_price_USDT)
+
+                # print current values to log
+                print(instr)
+
+                printBalanceLine(data_writer, instr)
 
             time.sleep(sleepDelayMin * 60)
+            disHelper.sendDiscordMsg(discordMsg)
 
 
 #---------------------------------------------------------------------------
