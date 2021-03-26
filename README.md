@@ -1,5 +1,5 @@
 # coinTicker
-A little bot that periodically reads current price data from Binance, tracks current profit and prints a little marker to screen to show price movement
+A little bot that periodically reads current price data from Binance, tracks current profit.
 This bot does not make any trades, it just reads prices and displays balances for your account, if any :) 
 
 Requires Binance API, and Discord API for notifications though that can be disabled.
