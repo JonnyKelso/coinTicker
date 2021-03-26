@@ -1,0 +1,45 @@
+Installation instructions:
+--------------------------
+clone the repo
+cd into directory
+make sure you have python <=3.8 (req. for Binance) and pip installed, and virtualenv if you want an isolated env.
+To install required packages just run:
+    pip install -r requirements.txt
+    
+Requires Binance API, and Discord API for notifications though that can be disabled. 
+Requires a Binance API key in a file 'config.py'. 
+Create a Binance account at https://www.binance.com/, then go to Account -> Settings -> API Management, create and copy the API key + secret to config.py as API_KEY and API_SECRET. 
+Note it is stronly recommended to change the restrictions on your API key to only alolow read only operations - disallow trades if you're not going to be trading using the key - and restrict the usage of the API key to your own IP address, and set up 2FA for your account. Obviously choose strong accopunt password. 
+Requires a Discord webhook URL if you want Discord notifications. Open Discord, log in, create a discord channel, got to Server Settings -> Integrations -> Webhooks -> New Webhook, give it a name and copy the URL, save it alongside the Binanace API key as DISCORD_WEBHOOK_URL
+----------------------
+
+Installing a virtualenv:
+------------------------
+pip install virtualenv
+cd my-project
+python3 -m venv myvenv
+.\myvenv\Scripts\activate
+deactivate
+
+List packages:
+--------------
+pip list
+
+Update packages:
+----------------
+pip freeze  # list packages
+pip freeze > requirements.txt # save reqs to file for easy recreation of venv
+
+Blow venv away and rebuild:
+---------------------------
+rm -r myvenv   # nuke old venv
+python3 -m venv myvenv/     # create a new one
+pip install -r requirements.txt    # reinstall all required packages.
+
+
+Ionstalling Binance and Discord individually if required:
+---------------------------------------------------------
+pip install python-binance # needs python <=3.8
+
+py -3 -m pip install -U discord.py
+
