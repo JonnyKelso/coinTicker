@@ -43,3 +43,30 @@ pip install python-binance # needs python <=3.8
 
 py -3 -m pip install -U discord.py
 
+RPi
+---
+$ cd repos/coinTicker
+$ source env-cointTicker/bin/activate
+$ python3 cryptobot.py
+
+Start bot within screen
+$ screen python3 cryptobot.py
+
+screen commands
+    Ctrl a c - Creates a new screen sessio
+    Ctrl a n - Switches to the next screen session
+    Ctrl a p - Switches to the previous screen session
+    Ctrl a d - Detaches a screen session
+    screen -ls  - list screen sessions
+    screen -r <session name>  - connect to screen session
+
+On new to RPi connection, in normal terminal session:
+$ screen -ls - list screen sessions
+    There are screens on:
+        2477.pts-0.server1      (Detached)
+        2522.pts-0.server1      (Detached)
+    2 Sockets in /var/run/screen/S-root.
+
+To reconnect to one of these sessions, run
+
+$ screen -r 2477.pts-0.server1
