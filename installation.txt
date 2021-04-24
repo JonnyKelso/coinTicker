@@ -43,16 +43,57 @@ pip install python-binance # needs python <=3.8
 
 py -3 -m pip install -U discord.py
 
-RPi
----
+Using this repo on RPI (or Linux generally)
+--------------------------------------------
+Update everything first    
+    sudo apt update
+    sudo apt upgrade
+Clone the repo
+    git clone https://github.com/JonnyKelso/coinTicker
+    cd coinTicker/
+Prep. for installing Python 3.8
+    sudo apt install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev libffi-dev
+Download Python 3.8
+    wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz
+Installing P{ython 3.8
+    sudo tar zxf Python-3.8.0.tgz 
+    cd Python-3.8.0/
+    sudo ./configure
+    sudo make -j 4
+    sudo make altinstall
+Check pyuthon version is 3.8.0
+    python --version
+Add an alias for python to .bashrc
+    vim ~/.bashrc    
+    alias python='/usr/local/bin/python3'   
+Install pip (for python3) with 
+    sudo apt install python3-pip
+Add an alias for pip3 to ~/.bashrc
+    vim ~/.bashrc
+    alias pip='pip3'   
+    source ~/.bashrc 
+    cd ../repos/coinTicker/
+Now install the virtual environment   
+   sudo pip3 install virtualenv
+Activate the venv   
+   source ./env-coinTicker/bin/activate
+Install the project requirements
+    pip3 install -r requirements.txt
+
+Activate the virtual environment
+----------------------------------
 $ cd repos/coinTicker
 $ source env-cointTicker/bin/activate
+
+Run the bot
+------------
 $ python3 cryptobot.py
 
-Start bot within screen
+Or... run bot within screen (if you want to ssh in to a box, run the script then close the ssh session without stopping the bot)
 $ screen python3 cryptobot.py
 
 screen commands
+---------------
     Ctrl a c - Creates a new screen sessio
     Ctrl a n - Switches to the next screen session
     Ctrl a p - Switches to the previous screen session
@@ -60,7 +101,8 @@ screen commands
     screen -ls  - list screen sessions
     screen -r <session name>  - connect to screen session
 
-On new to RPi connection, in normal terminal session:
+On new to RPi connection, in normal terminal session, to view the screen session:
+----------------------------------------------------------------------------------
 $ screen -ls - list screen sessions
     There are screens on:
         2477.pts-0.server1      (Detached)
@@ -68,5 +110,5 @@ $ screen -ls - list screen sessions
     2 Sockets in /var/run/screen/S-root.
 
 To reconnect to one of these sessions, run
-
+------------------------------------------
 $ screen -r 2477.pts-0.server1
