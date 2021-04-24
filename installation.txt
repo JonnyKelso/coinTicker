@@ -43,3 +43,37 @@ pip install python-binance # needs python <=3.8
 
 py -3 -m pip install -U discord.py
 
+Update everything first    
+    sudo apt update
+    sudo apt upgrade
+Clone the repo
+    git clone https://github.com/JonnyKelso/coinTicker
+    cd coinTicker/
+Prep. for installing Python 3.8
+    sudo apt install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev libffi-dev
+Download Python 3.8
+    wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz
+Installing P{ython 3.8
+    sudo tar zxf Python-3.8.0.tgz 
+    cd Python-3.8.0/
+    sudo ./configure
+    sudo make -j 4
+    sudo make altinstall
+Check pyuthon version is 3.8.0
+    python --version
+Add an alias for python to .bashrc
+    vim ~/.bashrc    
+    alias python='/usr/local/bin/python3'   
+Install pip (for python3) with 
+    sudo apt install python3-pip
+Add an alias for pip3 to ~/.bashrc
+    vim ~/.bashrc
+    alias pip='pip3'   
+    source ~/.bashrc 
+    cd ../repos/coinTicker/
+Now install the virtual environment   
+   sudo pip3 install virtualenv
+Activate the venv   
+   source ./env-coinTicker/bin/activate
+Install the project requirements
+    pip3 install -r requirements.txt

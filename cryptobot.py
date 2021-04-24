@@ -233,6 +233,8 @@ def rightJustifyString(value, totalLength):
     return str(f"{value:.2f}")
 
 def CheckNotifyAboutPrice(instrument):
+    if(CheckPrice == False):
+        return False
     price = instrument.coinPriceUSDT
     if instrument.notifyPriceThreshold == 0.0  :
         instrument.notifyPriceThreshold = instrument.notifyPriceThresholdDelta
@@ -306,7 +308,7 @@ if __name__ == '__main__':
     sleepDelayMin           = 5             # time between querying the binance API
     #notifyBalanceThreshold  = 20.0          # how far the profit value should move in GBP before notifying
     #balanceThreshold    = 0.0           # baseline profit value used to measure profit movement for notification purposes
-    
+    CheckPrice = False
     #API_KEY = os.getenv('BINANCE_API_KEY')
     #API_SECRET = os.environ.get('BINANCE_API_SECRET')
     #DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL')
