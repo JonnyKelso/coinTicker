@@ -9,6 +9,7 @@ from enum import Enum
 import os
 import sys
 from decimal import *
+import math
 
 #Binance
 from binance.client import Client
@@ -155,7 +156,7 @@ def calcDisplayMarkerPosition(instrument):
     return (displayLineLength / 2) + (adjusted_Coin_price - instrument.priceBaseline)
 
 def printLogMessage(message):
-    msg = f"{getTime()}, {time.time()}, {message}"
+    msg = f"{getTime()}, {math.trunc(time.time())}, {message}"
     print(msg)
 
 def writeData(writer, message):
@@ -272,7 +273,7 @@ def NotifyAboutPrice(writer, discordHelper, oldThreshold, instrument):
     movement = "DOWN"
     if instrument.coinPriceUSDT > oldThreshold:
         movement = "UP"
-    msg = (f"{instrument.symbol} price {movement} from {oldThreshold} to {instrument.coinPriceUSDT.quantize(Decimal('1.000'))}, new threshold at {instrument.notifyPriceThreshold.quantize(Decimal('1.000'))}")
+    msg = (f"{instrument.symbol.rjust(4,' ')} price {movement} from {oldThreshold} to {instrument.coinPriceUSDT.quantize(Decimal('1.000'))}, new threshold at {instrument.notifyPriceThreshold.quantize(Decimal('1.000'))}")
     printLogMessage(msg)
     discordHelper.sendDiscordMsg(f"@here {getTime()} {msg}")
 
@@ -280,7 +281,7 @@ def NotifyAboutBalance(writer, discordHelper, oldThreshold, instrument):
     movement = "DOWN"
     if instrument.balanceGBP['balance'] > oldThreshold:
         movement = "UP"
-    msg = (f"{instrument.symbol} balance {movement} from {oldThreshold} to {instrument.balanceGBP['balance'].quantize(Decimal('1.00'))}, new threshold at {instrument.notifyBalanceThreshold.quantize(Decimal('1.00'))}")
+    msg = (f"{instrument.symbol.rjust(4,' ')} balance {movement} from {oldThreshold} to {instrument.balanceGBP['balance'].quantize(Decimal('1.00'))}, new threshold at {instrument.notifyBalanceThreshold.quantize(Decimal('1.00'))}")
     printLogMessage(msg)
     discordHelper.sendDiscordMsg(f"@here {getTime()} {msg}")
     
@@ -288,7 +289,7 @@ def NotifyAboutBalance(writer, discordHelper, oldThreshold, instrument):
 if __name__ == '__main__':
     priceBaseline           = 0
     displayLineLength       = 100           # for display only - the number of character spaces used to display price marker
-    sleepDelayMin           = 1             # time between querying the binance API
+    sleepDelayMin           = 15             # time between querying the binance API
     CheckPrice = True
     useDiscord = True
 
